@@ -1,60 +1,89 @@
+import logging
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from device import Router, Smartphone, Smartwatch, Node, Package
 
-G = nx.Graph()
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-pc_nodes = ['PC1', 'PC2', 'PC3', 'PC4', 'PC5']
-router_nodes = ['Router1', 'Router2', 'Router3', 'Router4', 'Router5']
+def create_devices():
+    logging.debug("Creating devices...")
+    router1 = Router("Router1", "00:11:22:33:44:55", "192.168.1.1")
+    router2 = Router("Router2", "00:AA:BB:CC:DD:EE", "192.168.2.1")
+    router3 = Router("Router3", "00:11:22:33:44:66", "192.168.3.1")
+    router4 = Router("Router4", "00:AA:BB:CC:DD:FF", "192.168.4.1")
+    router5 = Router("Router5", "00:11:22:33:44:77", "192.168.5.1")
 
-G.add_nodes_from(pc_nodes)
-G.add_nodes_from(router_nodes)
+    device1 = Smartphone("Device1", "00:11:22:33:44:56", "192.168.1.2", "Android 12")
+    device2 = Smartphone("Device2", "00:11:22:33:44:57", "192.168.2.2", "iOS 15")
+    device3 = Smartwatch("Device3", "00:11:22:33:44:58", "192.168.3.2", "v1.0")
+    device4 = Smartphone("Device4", "00:11:22:33:44:59", "192.168.4.2", "Android 11")
+    device5 = Smartwatch("Device5", "00:11:22:33:44:60", "192.168.5.2", "v2.0")
 
-edges = [
-    ('PC1', 'Router1'),
-    ('PC2', 'Router2'),
-    ('PC3', 'Router3'),
-    ('PC4', 'Router4'),
-    ('PC5', 'Router5'),
-    ('Router1', 'Router2'),
-    ('Router2', 'Router3'),
-    ('Router3', 'Router4'),
-    ('Router4', 'Router5'),
-    ('Router5', 'Router1')
-]
+    logging.debug(f"Created {len([router1, router2, router3, router4, router5])} routers and {len([device1, device2, device3, device4, device5])} devices.")
+    return [router1, router2, router3, router4, router5, device1, device2, device3, device4, device5]
 
-G.add_edges_from(edges)
+def visualize_network(devices):
+    logging.debug("Visualizing network...")
+    G = nx.Graph()
 
-pos = {}
-angle_step = 2 * 3.14159 / len(router_nodes)
-radius = 5
+    num_routers = 5
+    angles = np.linspace(0, 2 * np.pi, num_routers, endpoint=False)
 
-for i, router in enumerate(router_nodes):
-    pos[router] = (radius * np.cos(i * angle_step), radius * np.sin(i * angle_step))
+    pos = {}
 
-side_length = 7
-pos['PC1'] = (side_length, 0)
-pos['PC2'] = (side_length / 2, side_length / 2)
-pos['PC3'] = (0, side_length)
-pos['PC4'] = (-side_length, 0)
-pos['PC5'] = (0, -side_length)
+    for i, router in enumerate(devices[:num_routers]):
+        x = np.cos(angles[i])
+        y = np.sin(angles[i])
+        pos[router.name] = (x, y)
+        logging.debug(f"Router {router.name} positioned at ({x}, {y})")
 
-def ping(node1, node2):
-    try:
-        if nx.has_path(G, node1, node2):
-            print(f'{node1} може пінгувати {node2}. Шлях існує.')
-        else:
-            print(f'{node1} не може пінгувати {node2}. Шлях відсутній.')
-    except nx.NetworkXError as e:
-        print(f'Помилка: {e}')
+    pos["Device1"] = (2.5, 0)
+    pos["Device2"] = (0.6, 2)
+    pos["Device3"] = (-2, 1.5)
+    pos["Device4"] = (-1.8, -1.5)
+    pos["Device5"] = (0.7, -2.3)
+    logging.debug("Devices positioned relative to routers.")
 
-for node1 in G.nodes:
-    for node2 in G.nodes:
-        if node1 != node2:
-            ping(node1, node2)
+    G.add_edge("Router1", "Router2")
+    G.add_edge("Router2", "Router3")
+    G.add_edge("Router3", "Router4")
+    G.add_edge("Router4", "Router5")
+    G.add_edge("Router5", "Router1")
 
-plt.figure(figsize=(8, 8))
-nx.draw(G, pos, with_labels=True, node_size=500, node_color="skyblue", font_size=10, font_weight='bold', edge_color="gray")
+    G.add_edge("Device1", "Router1")
+    G.add_edge("Device2", "Router2")
+    G.add_edge("Device3", "Router3")
+    G.add_edge("Device4", "Router4")
+    G.add_edge("Device5", "Router5")
+    logging.debug("Edges added between routers and devices.")
 
-plt.title('Мережа з 5 комп\'ютерів і 5 роутерів', fontsize=14)
-plt.show()
+    plt.figure(figsize=(10, 6))
+    nx.draw(G, pos, with_labels=True, node_size=3000, node_color='skyblue', font_size=10, font_weight='bold',
+            edge_color='gray')
+    plt.title("Device and Router Network Topology")
+    plt.axis('equal')
+    plt.show()
+    logging.debug("Network visualization complete.")
+
+def main():
+    logging.debug("Program started.")
+    devices = create_devices()
+
+    nodes = [Node(device) for device in devices]
+
+    nodes[0].connect(nodes[1])
+    nodes[1].connect(nodes[2])
+    nodes[2].connect(nodes[3])
+    nodes[3].connect(nodes[4])
+    nodes[4].connect(nodes[5])
+
+    visualize_network(devices)
+
+    package1 = Package(nodes[0], nodes[1], "Hello, Router2!")
+    nodes[0].send_packet(package1, nodes[1])
+
+    logging.debug("Program finished.")
+
+if __name__ == "__main__":
+    main()
