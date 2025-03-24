@@ -2,7 +2,7 @@ import math
 import random
 
 
-from Based import Poket
+from based import Poket
 
 class ARP:
     def __init__(self):
